@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Life beacon 360</string>
+    <string name="title_activity_main">Life beacon 360</string>
+    <string name="package_name">com.github.tiny_giraffes.life_beacon_360</string>
+    <string name="custom_url_scheme">com.github.tiny_giraffes.life_beacon_360</string>
+</resources>
