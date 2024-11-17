@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  life_beacon_postgres:
+    image: postgres:16.2-alpine3.19
+    container_name: life_beacon_postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: ***            
+      POSTGRES_PASSWORD: ***        
+      POSTGRES_DB: life_beacon_db              
+    volumes:
+      - life_beacon_postgres_db_volume:/var/lib/postgresql/data
+    ports:
+      - "6000:5432"
+
+volumes:
+  life_beacon_postgres_db_volume:
+

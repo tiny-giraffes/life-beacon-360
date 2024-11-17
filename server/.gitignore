@@ -1,0 +1,63 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go build artifacts
+server
+*.out
+
+# Directories
+bin/
+dist/
+vendor/
+
+# Logs and runtime files
+*.log
+*.pid
+*.lock
+
+# Config files
+config.yaml
+.env
+
+# Database files
+*.db
+*.sqlite
+
+# Temporary files and IDE/editor files
+*.tmp
+*.temp
+*.swp
+*.swo
+
+# macOS files
+.DS_Store
+
+# Docker-related files
+docker-compose.override.yml
+.dockerignore
+
+# Dependency directories
+/go
+node_modules/
+
+# Go coverage tool files
+*.coverprofile
+coverage.out
+
+# IDE and editor specific
+.vscode/
+.idea/
+*.code-workspace
+
+# Fiber specific
+fiber.lock
+
+# GORM-related generated files (if any)
+*.gorm
+
+# OS-generated files
+Thumbs.db
