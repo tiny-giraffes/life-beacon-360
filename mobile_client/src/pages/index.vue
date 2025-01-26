@@ -35,17 +35,26 @@
       <v-col cols="12" class="text-center">
         <v-btn color="primary" @click="saveSettings">Save Settings</v-btn>
       </v-col>
+      <v-col cols="12" class="text-center mt-4">
+        <v-btn color="secondary" @click="goToTrackingPage"
+          >Go to Tracking Page</v-btn
+        >
+      </v-col>
     </v-row>
   </v-container>
 </template>
 
 <script lang="ts">
 import { defineComponent, ref, onMounted } from "vue";
+import { useRouter } from "vue-router";
 import { Preferences } from "@capacitor/preferences";
 
 export default defineComponent({
   name: "App",
   setup() {
+    // Router for navigation
+    const router = useRouter();
+
     // Reactive states for settings
     const serverAddress = ref<string>("");
     const locationInterval = ref<number>(0);
@@ -79,6 +88,11 @@ export default defineComponent({
       }
     };
 
+    // Navigate to the TrackingPage
+    const goToTrackingPage = () => {
+      router.push("/TrackingPage");
+    };
+
     // Load settings on app initialization
     onMounted(() => {
       loadSettings();
@@ -90,6 +104,7 @@ export default defineComponent({
       serverToken,
       sendLocation,
       saveSettings,
+      goToTrackingPage,
     };
   },
 });
