@@ -1,3 +1,5 @@
 docker-compose.yml
 .vscode/launch.json
 
+mobile_client/android/app/capacitor.build.gradle
+mobile_client/android/capacitor.settings.gradle
