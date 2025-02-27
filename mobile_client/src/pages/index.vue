@@ -1,95 +1,181 @@
 <template>
   <v-container class="py-4">
-    <v-row>
-      <v-col cols="12">
-        <v-text-field
-          v-model="serverAddress"
-          label="Server Address"
-          hint="Enter the server URL"
-          outlined
-          dense
-        />
-      </v-col>
-      <v-col cols="12">
-        <v-text-field
-          v-model.number="locationInterval"
-          label="Location Interval (seconds)"
-          hint="Interval for sending location"
-          type="number"
-          outlined
-          dense
-        />
-      </v-col>
-      <v-col cols="12">
-        <v-text-field
-          v-model="serverToken"
-          label="Server Token"
-          hint="Token for server authentication"
-          outlined
-          dense
-        />
-      </v-col>
-      <v-col cols="12">
-        <v-checkbox v-model="sendLocation" label="Send Location to Server" />
-      </v-col>
+    <h1 class="text-center mb-4">Life Beacon 360</h1>
+    <h2 class="text-center mb-4">Settings</h2>
+
+    <v-card class="pa-4 mb-4">
+      <v-form @submit.prevent="saveSettings">
+        <v-row>
+          <v-col cols="12">
+            <v-text-field
+              v-model="serverAddress"
+              label="Server Address"
+              hint="Enter the complete server URL (e.g., http://your-server:8080/api/locations)"
+              persistent-hint
+              outlined
+              required
+            />
+          </v-col>
+
+          <v-col cols="12">
+            <v-text-field
+              v-model="serverToken"
+              label="Server Token"
+              hint="Token for server authentication"
+              persistent-hint
+              outlined
+              required
+            />
+          </v-col>
+
+          <v-col cols="12">
+            <v-checkbox
+              v-model="sendLocation"
+              label="Send Location to Server"
+              hint="Enable to send location data to the server"
+              persistent-hint
+            />
+          </v-col>
+
+          <v-col cols="12" v-if="sendLocation">
+            <v-text-field
+              v-model.number="locationInterval"
+              label="Location Interval (seconds)"
+              hint="How often to send location updates (0 = immediate/real-time)"
+              type="number"
+              min="0"
+              outlined
+              required
+            />
+          </v-col>
+
+          <v-col cols="12" class="text-center">
+            <v-btn color="primary" size="large" type="submit" :loading="saving">
+              Save Settings
+            </v-btn>
+          </v-col>
+        </v-row>
+      </v-form>
+    </v-card>
+
+    <v-card class="pa-4">
       <v-col cols="12" class="text-center">
-        <v-btn color="primary" @click="saveSettings">Save Settings</v-btn>
-      </v-col>
-      <v-col cols="12" class="text-center mt-4">
-        <v-btn color="secondary" @click="goToTrackingPage"
-          >Go to Tracking Page</v-btn
+        <p class="mb-2">Start location tracking:</p>
+        <v-btn
+          color="success"
+          size="large"
+          block
+          @click="goToTrackingPage"
+          :disabled="!areSettingsComplete"
         >
+          Go to Tracking Page
+        </v-btn>
+        <p v-if="!areSettingsComplete" class="mt-2 text-error">
+          Please complete and save settings first
+        </p>
       </v-col>
-    </v-row>
+    </v-card>
+
+    <v-snackbar v-model="showSnackbar" :color="snackbarColor">
+      {{ snackbarText }}
+    </v-snackbar>
   </v-container>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted } from "vue";
+import { defineComponent, ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { Preferences } from "@capacitor/preferences";
 
 export default defineComponent({
-  name: "App",
+  name: "SettingsPage",
   setup() {
     // Router for navigation
     const router = useRouter();
 
     // Reactive states for settings
     const serverAddress = ref<string>("");
-    const locationInterval = ref<number>(0);
+    const locationInterval = ref<number>(30);
     const serverToken = ref<string>("");
     const sendLocation = ref<boolean>(false);
 
+    // UI states
+    const saving = ref<boolean>(false);
+    const showSnackbar = ref<boolean>(false);
+    const snackbarText = ref<string>("");
+    const snackbarColor = ref<string>("success");
+
+    // Check if settings are complete enough to proceed
+    const areSettingsComplete = computed(() => {
+      if (!sendLocation.value) {
+        return true; // If not sending location, no need for other settings
+      }
+      return !!serverAddress.value && !!serverToken.value;
+    });
+
     // Save settings to local storage
     const saveSettings = async () => {
-      const settings = {
-        serverAddress: serverAddress.value,
-        locationInterval: locationInterval.value,
-        serverToken: serverToken.value,
-        sendLocation: sendLocation.value,
-      };
-      await Preferences.set({
-        key: "appSettings",
-        value: JSON.stringify(settings),
-      });
-      alert("Settings saved successfully!");
+      if (sendLocation.value && (!serverAddress.value || !serverToken.value)) {
+        showSnackbarMessage("Please fill in all required fields", "error");
+        return;
+      }
+
+      saving.value = true;
+      try {
+        const settings = {
+          serverAddress: serverAddress.value,
+          locationInterval: locationInterval.value,
+          serverToken: serverToken.value,
+          sendLocation: sendLocation.value,
+        };
+
+        await Preferences.set({
+          key: "appSettings",
+          value: JSON.stringify(settings),
+        });
+
+        showSnackbarMessage("Settings saved successfully!", "success");
+      } catch (error) {
+        console.error("Failed to save settings:", error);
+        showSnackbarMessage("Failed to save settings", "error");
+      } finally {
+        saving.value = false;
+      }
+    };
+
+    // Show snackbar message
+    const showSnackbarMessage = (
+      message: string,
+      color: string = "success"
+    ) => {
+      snackbarText.value = message;
+      snackbarColor.value = color;
+      showSnackbar.value = true;
     };
 
     // Load settings from local storage
     const loadSettings = async () => {
-      const { value } = await Preferences.get({ key: "appSettings" });
-      if (value) {
-        const settings = JSON.parse(value);
-        serverAddress.value = settings.serverAddress || "";
-        locationInterval.value = settings.locationInterval || 0;
-        serverToken.value = settings.serverToken || "";
-        sendLocation.value = settings.sendLocation || false;
+      try {
+        const { value } = await Preferences.get({ key: "appSettings" });
+        if (value) {
+          const settings = JSON.parse(value);
+          serverAddress.value = settings.serverAddress || "";
+          locationInterval.value = settings.locationInterval ?? 30;
+          serverToken.value = settings.serverToken || "";
+          sendLocation.value = settings.sendLocation || false;
+        }
+      } catch (error) {
+        console.error("Failed to load settings:", error);
+        showSnackbarMessage("Failed to load settings", "error");
       }
     };
 
     // Navigate to the TrackingPage
     const goToTrackingPage = () => {
+      if (!areSettingsComplete.value) {
+        showSnackbarMessage("Please complete and save settings first", "error");
+        return;
+      }
       router.push("/TrackingPage");
     };
 
@@ -103,6 +189,11 @@ export default defineComponent({
       locationInterval,
       serverToken,
       sendLocation,
+      saving,
+      showSnackbar,
+      snackbarText,
+      snackbarColor,
+      areSettingsComplete,
       saveSettings,
       goToTrackingPage,
     };

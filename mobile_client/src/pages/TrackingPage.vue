@@ -1,21 +1,61 @@
 <template>
-  <div>
-    <h1>Tracking Page</h1>
-    <!-- Add navigation button at the top -->
-    <div class="mb-4">
-      <v-btn color="primary" @click="goBack">Back to Settings</v-btn>
-    </div>
+  <v-container class="py-4">
+    <h1 class="text-center mb-4">Location Tracking</h1>
 
-    <p v-if="position">
-      Current Position: Latitude: {{ position.latitude }}, Longitude:
-      {{ position.longitude }}
-    </p>
-    <p v-else>Waiting for location...</p>
-  </div>
+    <v-row>
+      <v-col cols="12" class="mb-4">
+        <v-btn color="primary" block @click="goBack">Back to Settings</v-btn>
+      </v-col>
+
+      <v-col cols="12" class="text-center mb-4">
+        <v-card class="pa-4">
+          <div v-if="position">
+            <h3 class="mb-2">Current Position</h3>
+            <p>Latitude: {{ position.latitude.toFixed(6) }}</p>
+            <p>Longitude: {{ position.longitude.toFixed(6) }}</p>
+            <p v-if="lastSentTime">Last sent: {{ lastSentTime }}</p>
+          </div>
+          <div v-else>
+            <p>Waiting for location data...</p>
+          </div>
+        </v-card>
+      </v-col>
+
+      <v-col cols="12" class="text-center">
+        <v-btn
+          v-if="!isTracking"
+          color="success"
+          size="large"
+          block
+          @click="startTracking"
+        >
+          Start Tracking
+        </v-btn>
+        <v-btn v-else color="error" size="large" block @click="stopTracking">
+          Stop Tracking
+        </v-btn>
+      </v-col>
+
+      <v-col cols="12" v-if="isTracking && sendLocation">
+        <v-card class="pa-4 mt-4">
+          <h3 class="mb-2">Server Status</h3>
+          <p>Sending to: {{ serverAddress }}</p>
+          <p>Interval: {{ locationInterval }} seconds</p>
+          <p v-if="serverStatus">{{ serverStatus }}</p>
+        </v-card>
+      </v-col>
+
+      <v-col cols="12" v-if="error">
+        <v-alert type="error" class="mt-4">
+          {{ error }}
+        </v-alert>
+      </v-col>
+    </v-row>
+  </v-container>
 </template>
 
 <script lang="ts">
-import { ref, onMounted, onBeforeUnmount } from "vue";
+import { defineComponent, ref, onMounted, onBeforeUnmount } from "vue";
 import { useRouter } from "vue-router";
 import { registerPlugin } from "@capacitor/core";
 import { Preferences } from "@capacitor/preferences";
@@ -25,7 +65,7 @@ const BackgroundGeolocation = registerPlugin<BackgroundGeolocationPlugin>(
   "BackgroundGeolocation"
 );
 
-export default {
+export default defineComponent({
   setup() {
     const router = useRouter();
     const position = ref<{ latitude: number; longitude: number } | null>(null);
@@ -33,98 +73,193 @@ export default {
     const serverToken = ref("");
     const sendLocation = ref(false);
     const locationInterval = ref(0);
-    let watcherId: string | null = null;
-    let intervalId: number | null = null;
+    const isTracking = ref(false);
+    const watcherId = ref<string | null>(null);
+    const intervalId = ref<number | null>(null);
+    const serverStatus = ref("");
+    const error = ref("");
+    const lastSentTime = ref("");
 
     const goBack = () => {
-      router.push("/");
+      if (isTracking.value) {
+        if (confirm("Tracking is active. Stop tracking and go back?")) {
+          stopTracking();
+          router.push("/");
+        }
+      } else {
+        router.push("/");
+      }
     };
 
     const loadSettings = async () => {
-      const { value } = await Preferences.get({ key: "appSettings" });
-      if (value) {
-        const settings = JSON.parse(value);
-        serverAddress.value = settings.serverAddress;
-        serverToken.value = settings.serverToken;
-        sendLocation.value = settings.sendLocation;
-        locationInterval.value = settings.locationInterval;
+      try {
+        const { value } = await Preferences.get({ key: "appSettings" });
+        if (value) {
+          const settings = JSON.parse(value);
+          serverAddress.value = settings.serverAddress || "";
+          serverToken.value = settings.serverToken || "";
+          sendLocation.value = settings.sendLocation || false;
+          locationInterval.value = settings.locationInterval || 0;
+        }
+      } catch (err) {
+        error.value = "Failed to load settings";
+        console.error("Failed to load settings:", err);
       }
+    };
+
+    const formatTime = () => {
+      const now = new Date();
+      return now.toLocaleTimeString();
     };
 
     const sendToServer = async (location: {
       latitude: number;
       longitude: number;
     }) => {
+      if (!sendLocation.value || !serverAddress.value) return;
+
       try {
-        await fetch(serverAddress.value, {
+        serverStatus.value = "Sending location...";
+        const response = await fetch(serverAddress.value, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${serverToken.value}`,
+            Authorization: serverToken.value.startsWith("Bearer ")
+              ? serverToken.value
+              : `Bearer ${serverToken.value}`,
           },
           body: JSON.stringify({
             latitude: location.latitude,
             longitude: location.longitude,
-            timestamp: new Date().toISOString(),
           }),
         });
-      } catch (error) {
-        console.error("Failed to send location:", error);
+
+        if (response.ok) {
+          serverStatus.value = "Location sent successfully";
+          lastSentTime.value = formatTime();
+        } else {
+          const errorData = await response.json();
+          serverStatus.value = `Error: ${
+            errorData.error || response.statusText
+          }`;
+        }
+      } catch (err) {
+        serverStatus.value = "Failed to send location";
+        console.error("Failed to send location:", err);
       }
     };
 
     const startTracking = async () => {
-      await loadSettings();
+      try {
+        await loadSettings();
 
-      watcherId = await BackgroundGeolocation.addWatcher(
-        {
-          backgroundMessage: "Cancel to prevent battery drain.",
-          backgroundTitle: "Tracking You.",
-          requestPermissions: true,
-          stale: false,
-          distanceFilter: 50,
-        },
-        (location, error) => {
-          if (error) {
-            if (error.code === "NOT_AUTHORIZED") {
-              if (confirm("Location permission required. Open settings?")) {
-                BackgroundGeolocation.openSettings();
+        // Request location permissions
+        watcherId.value = await BackgroundGeolocation.addWatcher(
+          {
+            backgroundMessage: "Life Beacon 360 is tracking your location.",
+            backgroundTitle: "Location Tracking Active",
+            requestPermissions: true,
+            stale: false,
+            distanceFilter: 10, // Meters
+          },
+          (location, err) => {
+            if (err) {
+              error.value = `Location error: ${err.message}`;
+              if (err.code === "NOT_AUTHORIZED") {
+                if (confirm("Location permission required. Open settings?")) {
+                  BackgroundGeolocation.openSettings();
+                }
+              }
+              return;
+            }
+
+            if (location) {
+              position.value = {
+                latitude: location.latitude,
+                longitude: location.longitude,
+              };
+
+              // Send immediately if interval is 0
+              if (sendLocation.value && locationInterval.value === 0) {
+                sendToServer(position.value);
               }
             }
-            return;
           }
+        );
 
-          if (location) {
-            position.value = {
-              latitude: location.latitude,
-              longitude: location.longitude,
-            };
-
-            // Send immediately if interval is 0
-            if (sendLocation.value && locationInterval.value === 0) {
+        // Set up interval for sending location if enabled and interval > 0
+        if (sendLocation.value && locationInterval.value > 0) {
+          intervalId.value = window.setInterval(() => {
+            if (position.value) {
               sendToServer(position.value);
             }
-          }
+          }, locationInterval.value * 1000);
         }
-      );
 
-      // Setup interval if enabled
-      if (sendLocation.value && locationInterval.value > 0) {
-        intervalId = window.setInterval(() => {
-          if (position.value) sendToServer(position.value);
-        }, locationInterval.value * 1000);
+        isTracking.value = true;
+        error.value = "";
+      } catch (err) {
+        error.value = "Failed to start tracking";
+        console.error("Failed to start tracking:", err);
       }
     };
 
-    const stopTracking = () => {
-      if (watcherId) BackgroundGeolocation.removeWatcher({ id: watcherId });
-      if (intervalId) clearInterval(intervalId);
+    const stopTracking = async () => {
+      try {
+        // Stop location watcher
+        if (watcherId.value) {
+          await BackgroundGeolocation.removeWatcher({
+            id: watcherId.value,
+          });
+          watcherId.value = null;
+        }
+
+        // Clear sending interval
+        if (intervalId.value !== null) {
+          clearInterval(intervalId.value);
+          intervalId.value = null;
+        }
+
+        isTracking.value = false;
+        serverStatus.value = "";
+      } catch (err) {
+        error.value = "Failed to stop tracking";
+        console.error("Failed to stop tracking:", err);
+      }
     };
 
-    onMounted(startTracking);
-    onBeforeUnmount(stopTracking);
+    // Clean up on unmount
+    onBeforeUnmount(() => {
+      if (isTracking.value) {
+        stopTracking();
+      }
+    });
 
-    return { position, goBack };
+    // Load settings when component mounts
+    onMounted(() => {
+      loadSettings();
+    });
+
+    return {
+      position,
+      isTracking,
+      serverAddress,
+      locationInterval,
+      sendLocation,
+      serverStatus,
+      error,
+      lastSentTime,
+      goBack,
+      startTracking,
+      stopTracking,
+    };
   },
-};
+});
 </script>
+
+<style scoped>
+.v-container {
+  max-width: 600px;
+  margin: auto;
+}
+</style>
