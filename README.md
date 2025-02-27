@@ -1,4 +1,4 @@
-# Life Beacon 360
+# Life Beacon 360 (an early prototype)
 
 A location tracking application with a mobile client and backend server.
 
