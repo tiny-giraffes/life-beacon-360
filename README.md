@@ -170,3 +170,9 @@ For a production environment, consider adding:
 - More robust error handling
 - Rate limiting
 - TLS/HTTPS
+
+## License
+
+This project is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0) - see the [LICENSE](LICENSE) file for details.
+
+The AGPL-3.0 requires that if you modify this software and provide it as a service over a network (e.g., a web application), you must make your modified source code available to the users of that service.
