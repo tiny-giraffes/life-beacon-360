@@ -20,6 +20,7 @@ import (
 	"log"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/tiny-giraffes/life-beacon-360/server/config"
 	"github.com/tiny-giraffes/life-beacon-360/server/internal/api"
 	"github.com/tiny-giraffes/life-beacon-360/server/internal/models"
@@ -32,6 +33,12 @@ func main() {
 
 	// Initialize the Fiber app
 	app := fiber.New()
+
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "*",                                           // Allow all origins
+		AllowMethods: "GET,POST,OPTIONS",                            // Allowed methods
+		AllowHeaders: "Origin, Content-Type, Accept, Authorization", // Allowed headers
+	}))
 
 	// Connect to the database
 	db, err := database.ConnectDB()

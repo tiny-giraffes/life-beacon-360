@@ -138,13 +138,22 @@ export default defineComponent({
 
       try {
         serverStatus.value = "Sending location...";
+        console.log("Sending to address:", serverAddress.value);
+        console.log("Using token:", serverToken.value);
+        console.log(
+          "Sending data:",
+          JSON.stringify({
+            latitude: location.latitude,
+            longitude: location.longitude,
+          })
+        );
+
         const response = await fetch(serverAddress.value, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: serverToken.value.startsWith("Bearer ")
-              ? serverToken.value
-              : `Bearer ${serverToken.value}`,
+            // Try without Bearer prefix since your curl might be working that way
+            Authorization: serverToken.value,
           },
           body: JSON.stringify({
             latitude: location.latitude,
@@ -152,18 +161,18 @@ export default defineComponent({
           }),
         });
 
+        const responseText = await response.text();
+        console.log("Response status:", response.status);
+        console.log("Response body:", responseText);
+
         if (response.ok) {
           serverStatus.value = "Location sent successfully";
           lastSentTime.value = formatTime();
         } else {
-          const errorData = await response.json();
-          serverStatus.value = `Error: ${
-            errorData.error || response.statusText
-          }`;
+          serverStatus.value = `Error: ${response.status} - ${responseText}`;
         }
       } catch (err) {
-        serverStatus.value = "Failed to send location";
-        console.error("Failed to send location:", err);
+        console.error("Send error details:", err);
       }
     };
 

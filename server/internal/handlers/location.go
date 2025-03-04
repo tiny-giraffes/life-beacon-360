@@ -19,6 +19,8 @@
 package handlers
 
 import (
+	"fmt"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/tiny-giraffes/life-beacon-360/server/internal/models"
 	"github.com/tiny-giraffes/life-beacon-360/server/internal/repository"
@@ -41,6 +43,9 @@ import (
 func CreateLocation(db *gorm.DB) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		var locationReq models.LocationRequest
+
+		fmt.Println("Received request to /api/locations")
+		fmt.Printf("Headers: %v\n", c.GetReqHeaders())
 
 		// Parse JSON body into LocationRequest struct
 		if err := c.BodyParser(&locationReq); err != nil {
