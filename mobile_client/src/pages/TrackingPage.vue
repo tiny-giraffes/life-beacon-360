@@ -299,11 +299,11 @@ export default defineComponent({
     };
 
     // Clean up on unmount
-    /* onBeforeUnmount(() => {
+    onBeforeUnmount(() => {
       if (isTracking.value) {
         stopTracking();
       }
-    }); */
+    });
 
     // Load settings when component mounts
     onMounted(() => {
