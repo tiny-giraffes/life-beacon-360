@@ -83,6 +83,15 @@ const BackgroundGeolocation = registerPlugin<BackgroundGeolocationPlugin>(
   "BackgroundGeolocation"
 );
 
+interface LocationServicePlugin {
+  startService(): Promise<void>;
+  stopService(): Promise<void>;
+}
+
+// Register our custom LocationService plugin
+const LocationService =
+  registerPlugin<LocationServicePlugin>("LocationService");
+
 export default defineComponent({
   setup() {
     const router = useRouter();
@@ -97,6 +106,7 @@ export default defineComponent({
     const serverStatus = ref("");
     const error = ref("");
     const lastSentTime = ref("");
+    const serviceRunning = ref(false);
 
     const goBack = () => {
       if (isTracking.value) {
@@ -152,7 +162,6 @@ export default defineComponent({
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            // Try without Bearer prefix since your curl might be working that way
             Authorization: serverToken.value,
           },
           body: JSON.stringify({
@@ -173,12 +182,41 @@ export default defineComponent({
         }
       } catch (err) {
         console.error("Send error details:", err);
+        serverStatus.value = `Error: Failed to send location`;
+      }
+    };
+
+    const startNativeService = async () => {
+      try {
+        console.log("Starting native location service...");
+        await LocationService.startService();
+        serviceRunning.value = true;
+        console.log("Native location service started successfully");
+      } catch (err) {
+        console.error("Failed to start native service:", err);
+        error.value = "Failed to start background service";
+      }
+    };
+
+    const stopNativeService = async () => {
+      try {
+        if (serviceRunning.value) {
+          console.log("Stopping native location service...");
+          await LocationService.stopService();
+          serviceRunning.value = false;
+          console.log("Native location service stopped successfully");
+        }
+      } catch (err) {
+        console.error("Failed to stop native service:", err);
       }
     };
 
     const startTracking = async () => {
       try {
         await loadSettings();
+
+        // Start native foreground service first for persistent background operation
+        await startNativeService();
 
         // Request location permissions
         watcherId.value = await BackgroundGeolocation.addWatcher(
@@ -228,6 +266,8 @@ export default defineComponent({
       } catch (err) {
         error.value = "Failed to start tracking";
         console.error("Failed to start tracking:", err);
+        // Clean up partial initialization
+        stopNativeService();
       }
     };
 
@@ -247,6 +287,9 @@ export default defineComponent({
           intervalId.value = null;
         }
 
+        // Stop the native service
+        await stopNativeService();
+
         isTracking.value = false;
         serverStatus.value = "";
       } catch (err) {
@@ -256,11 +299,11 @@ export default defineComponent({
     };
 
     // Clean up on unmount
-    onBeforeUnmount(() => {
+    /* onBeforeUnmount(() => {
       if (isTracking.value) {
         stopTracking();
       }
-    });
+    }); */
 
     // Load settings when component mounts
     onMounted(() => {

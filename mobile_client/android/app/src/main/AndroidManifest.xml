@@ -54,6 +54,12 @@
             android:foregroundServiceType="location" 
             android:permission="android.permission.BIND_JOB_SERVICE"/>
 
+        <service
+            android:name=".LocationService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="location" />
+
     </application>
 
 </manifest>
