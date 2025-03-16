@@ -29,6 +29,7 @@ import (
 func SetupRoutes(app *fiber.App, db *gorm.DB) {
 	api := app.Group("/api")
 
-	// Location route
+	// Location routes
 	api.Post("/locations", middleware.AuthMiddleware, handlers.CreateLocation(db))
+	api.Get("/locations", middleware.AuthMiddleware, handlers.GetLatestLocations(db))
 }

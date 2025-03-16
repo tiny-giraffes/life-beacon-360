@@ -27,3 +27,10 @@ import (
 func SaveCoordinate(db *gorm.DB, coord *models.Location) error {
 	return db.Create(coord).Error
 }
+
+// GetLatestLocations retrieves the latest n locations from the database
+func GetLatestLocations(db *gorm.DB, limit int) ([]models.Location, error) {
+	var locations []models.Location
+	err := db.Order("created_at DESC").Limit(limit).Find(&locations).Error
+	return locations, err
+}

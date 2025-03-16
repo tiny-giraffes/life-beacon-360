@@ -72,3 +72,29 @@ func CreateLocation(db *gorm.DB) fiber.Handler {
 		})
 	}
 }
+
+// GetLatestLocations godoc
+// @Summary Get latest locations
+// @Description Retrieves the latest 10 location coordinates from the database
+// @Tags Location
+// @Security ApiKeyAuth
+// @Accept json
+// @Produce json
+// @Success 200 {array} models.Location
+// @Failure 401 {object} map[string]string "Unauthorized - Invalid or missing token"
+// @Failure 500 {object} map[string]string
+// @Router /api/locations [get]
+func GetLatestLocations(db *gorm.DB) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		// Get the latest 10 locations
+		locations, err := repository.GetLatestLocations(db, 10)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to retrieve locations: " + err.Error(),
+			})
+		}
+
+		// Return the locations as JSON
+		return c.Status(fiber.StatusOK).JSON(locations)
+	}
+}
