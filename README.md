@@ -1,15 +1,57 @@
 # Life Beacon 360 (an early prototype)
 
-A location tracking application with a mobile client and backend server.
+A location tracking application with mobile and web clients and a backend server.
 
 ## Project Overview
 
 Life Beacon 360 is a prototype location tracking system that consists of:
 
 1. **Mobile Client**: Android app that tracks user location and sends it to a server
-2. **Server**: Go backend that receives and stores location data
+2. **Web Client**: Vue.js frontend for managing and viewing location data
+3. **Server**: Go backend that receives and stores location data
 
 This project allows for real-time or interval-based location tracking with authorization.
+
+## Web Client
+
+### Setup Instructions
+
+1. Navigate to the web client directory:
+
+   ```bash
+   cd web_client
+   ```
+
+2. Install dependencies:
+
+   ```bash
+   npm install
+   ```
+
+3. Run the development server:
+
+   ```bash
+   npm run dev
+   ```
+
+4. Build for production:
+
+   ```bash
+   npm run build
+   ```
+
+5. Preview production build:
+   ```bash
+   npm run preview
+   ```
+
+### Project Structure
+
+- Uses Vue 3 with Vuetify for UI components
+- Typescript for type safety
+- Vite as the build tool
+- Pinia for state management
+- Vue Router for navigation
 
 ## Mobile Client
 
@@ -154,6 +196,7 @@ This project allows for real-time or interval-based location tracking with autho
 ### Debugging
 
 - Mobile client logs can be viewed in Android Studio's Logcat
+- Web client can be debugged using browser developer tools
 - Server logs appear in the terminal where the server is running
 
 ## Security Notes
