@@ -3,3 +3,5 @@ docker-compose.yml
 
 mobile_client/android/app/capacitor.build.gradle
 mobile_client/android/capacitor.settings.gradle
+web_client/.env
+web_client/package-lock.json
