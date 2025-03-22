@@ -2,11 +2,7 @@
   <v-app>
     <v-app-bar color="primary">
       <v-app-bar-title>Life Beacon 360</v-app-bar-title>
-
       <v-spacer></v-spacer>
-
-      <v-btn to="/" variant="text">Home</v-btn>
-      <v-btn to="/map" variant="text">Map</v-btn>
     </v-app-bar>
 
     <v-main>
