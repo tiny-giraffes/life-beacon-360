@@ -19,17 +19,17 @@
 package api
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/labstack/echo/v4"
 	"github.com/tiny-giraffes/life-beacon-360/server/internal/handlers"
 	"github.com/tiny-giraffes/life-beacon-360/server/internal/middleware"
 	"gorm.io/gorm"
 )
 
 // SetupRoutes sets up all the routes for the API
-func SetupRoutes(app *fiber.App, db *gorm.DB) {
-	api := app.Group("/api")
+func SetupRoutes(e *echo.Echo, db *gorm.DB) {
+	api := e.Group("/api")
 
 	// Location routes
-	api.Post("/locations", middleware.AuthMiddleware, handlers.CreateLocation(db))
-	api.Get("/locations", middleware.AuthMiddleware, handlers.GetLatestLocations(db))
+	api.POST("/locations", handlers.CreateLocation(db), middleware.AuthMiddleware)
+	api.GET("/locations", handlers.GetLatestLocations(db), middleware.AuthMiddleware)
 }

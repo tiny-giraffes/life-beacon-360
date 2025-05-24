@@ -20,8 +20,9 @@ package handlers
 
 import (
 	"fmt"
+	"net/http"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/labstack/echo/v4"
 	"github.com/tiny-giraffes/life-beacon-360/server/internal/models"
 	"github.com/tiny-giraffes/life-beacon-360/server/internal/repository"
 	"gorm.io/gorm"
@@ -40,16 +41,16 @@ import (
 // @Failure 401 {object} map[string]string "Unauthorized - Invalid or missing token"
 // @Failure 500 {object} map[string]string
 // @Router /api/locations [post]
-func CreateLocation(db *gorm.DB) fiber.Handler {
-	return func(c *fiber.Ctx) error {
+func CreateLocation(db *gorm.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
 		var locationReq models.LocationRequest
 
 		fmt.Println("Received request to /api/locations")
-		fmt.Printf("Headers: %v\n", c.GetReqHeaders())
+		fmt.Printf("Headers: %v\n", c.Request().Header)
 
 		// Parse JSON body into LocationRequest struct
-		if err := c.BodyParser(&locationReq); err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+		if err := c.Bind(&locationReq); err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{
 				"error": "Failed to parse JSON",
 			})
 		}
@@ -62,12 +63,12 @@ func CreateLocation(db *gorm.DB) fiber.Handler {
 
 		// Save the location using repository function
 		if err := repository.SaveCoordinate(db, &location); err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			return c.JSON(http.StatusInternalServerError, map[string]string{
 				"error": "Failed to save location",
 			})
 		}
 
-		return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+		return c.JSON(http.StatusCreated, map[string]string{
 			"message": "Location saved successfully",
 		})
 	}
@@ -84,17 +85,17 @@ func CreateLocation(db *gorm.DB) fiber.Handler {
 // @Failure 401 {object} map[string]string "Unauthorized - Invalid or missing token"
 // @Failure 500 {object} map[string]string
 // @Router /api/locations [get]
-func GetLatestLocations(db *gorm.DB) fiber.Handler {
-	return func(c *fiber.Ctx) error {
+func GetLatestLocations(db *gorm.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
 		// Get the latest 10 locations
 		locations, err := repository.GetLatestLocations(db, 10)
 		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			return c.JSON(http.StatusInternalServerError, map[string]string{
 				"error": "Failed to retrieve locations: " + err.Error(),
 			})
 		}
 
 		// Return the locations as JSON
-		return c.Status(fiber.StatusOK).JSON(locations)
+		return c.JSON(http.StatusOK, locations)
 	}
 }

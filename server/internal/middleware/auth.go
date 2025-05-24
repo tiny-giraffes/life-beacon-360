@@ -19,39 +19,42 @@
 package middleware
 
 import (
+	"net/http"
 	"strings"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/labstack/echo/v4"
 	"github.com/tiny-giraffes/life-beacon-360/server/config"
 )
 
-func AuthMiddleware(c *fiber.Ctx) error {
-	// Get authorization header
-	authHeader := c.Get("Authorization")
+func AuthMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		// Get authorization header
+		authHeader := c.Request().Header.Get("Authorization")
 
-	// Check if header is empty
-	if authHeader == "" {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": "Unauthorized - Missing authentication token",
-		})
+		// Check if header is empty
+		if authHeader == "" {
+			return c.JSON(http.StatusUnauthorized, map[string]string{
+				"error": "Unauthorized - Missing authentication token",
+			})
+		}
+
+		// Extract token - supports both "Bearer TOKEN" and plain "TOKEN" formats
+		var token string
+		if strings.HasPrefix(authHeader, "Bearer ") {
+			// Extract token from "Bearer TOKEN" format
+			token = strings.TrimPrefix(authHeader, "Bearer ")
+		} else {
+			// Use the raw header value as token
+			token = authHeader
+		}
+
+		// Validate token
+		if token == "" || token != config.AppConfig.ApiToken {
+			return c.JSON(http.StatusUnauthorized, map[string]string{
+				"error": "Unauthorized - Invalid authentication token",
+			})
+		}
+
+		return next(c)
 	}
-
-	// Extract token - supports both "Bearer TOKEN" and plain "TOKEN" formats
-	var token string
-	if strings.HasPrefix(authHeader, "Bearer ") {
-		// Extract token from "Bearer TOKEN" format
-		token = strings.TrimPrefix(authHeader, "Bearer ")
-	} else {
-		// Use the raw header value as token
-		token = authHeader
-	}
-
-	// Validate token
-	if token == "" || token != config.AppConfig.ApiToken {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": "Unauthorized - Invalid authentication token",
-		})
-	}
-
-	return c.Next()
 }

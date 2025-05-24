@@ -19,8 +19,8 @@ package main
 import (
 	"log"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/tiny-giraffes/life-beacon-360/server/config"
 	"github.com/tiny-giraffes/life-beacon-360/server/internal/api"
 	"github.com/tiny-giraffes/life-beacon-360/server/internal/models"
@@ -31,13 +31,14 @@ func main() {
 	// Load environment config
 	config.LoadConfig()
 
-	// Initialize the Fiber app
-	app := fiber.New()
+	// Initialize Echo instance
+	e := echo.New()
 
-	app.Use(cors.New(cors.Config{
-		AllowOrigins: "*",                                           // Allow all origins
-		AllowMethods: "GET,POST,OPTIONS",                            // Allowed methods
-		AllowHeaders: "Origin, Content-Type, Accept, Authorization", // Allowed headers
+	// CORS middleware
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: []string{"*"},
+		AllowMethods: []string{echo.GET, echo.POST, echo.OPTIONS},
+		AllowHeaders: []string{"Origin", "Content-Type", "Accept", "Authorization"},
 	}))
 
 	// Connect to the database
@@ -46,8 +47,14 @@ func main() {
 		log.Fatal("Failed to connect to the database:", err)
 	}
 	defer func() {
-		sqlDB, _ := db.DB()
-		sqlDB.Close()
+		sqlDB, err := db.DB()
+		if err != nil {
+			log.Printf("Error getting underlying sql.DB: %v", err)
+			return
+		}
+		if err := sqlDB.Close(); err != nil {
+			log.Printf("Error closing database connection: %v", err)
+		}
 	}()
 
 	// Migrate the Location model
@@ -56,8 +63,8 @@ func main() {
 	}
 
 	// Set up API routes
-	api.SetupRoutes(app, db)
+	api.SetupRoutes(e, db)
 
 	// Start the server
-	log.Fatal(app.Listen(":8080"))
+	log.Fatal(e.Start(":8080"))
 }
