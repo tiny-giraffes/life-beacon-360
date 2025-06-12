@@ -36,7 +36,19 @@ func ConnectDB() (*gorm.DB, error) {
 	)
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		log.Fatalf("Could not connect to the database: %v", err)
+		return nil, fmt.Errorf("could not connect to the database: %v", err)
 	}
-	return db, err
+	
+	// Test the connection
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get database instance: %v", err)
+	}
+	
+	if err := sqlDB.Ping(); err != nil {
+		return nil, fmt.Errorf("failed to ping database: %v", err)
+	}
+	
+	log.Println("Database connection established successfully")
+	return db, nil
 }

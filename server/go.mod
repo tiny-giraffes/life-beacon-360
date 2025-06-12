@@ -5,6 +5,7 @@ module github.com/tiny-giraffes/life-beacon-360/server
 go 1.23.2
 
 require (
+	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
 	github.com/labstack/echo/v4 v4.13.4
 	gorm.io/driver/postgres v1.5.9
