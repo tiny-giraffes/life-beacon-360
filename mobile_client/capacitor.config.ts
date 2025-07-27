@@ -2,7 +2,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
   appId: "com.github.tiny_giraffes.life_beacon_360",
-  appName: "Life beacon 360",
+  appName: "Life Beacon 360",
   webDir: "dist",
   plugins: {
     BackgroundGeolocation: {

@@ -23,6 +23,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/tiny-giraffes/life-beacon-360/server/config"
 	"github.com/tiny-giraffes/life-beacon-360/server/internal/api"
+	"github.com/tiny-giraffes/life-beacon-360/server/internal/migrations"
 	"github.com/tiny-giraffes/life-beacon-360/server/internal/models"
 	"github.com/tiny-giraffes/life-beacon-360/server/pkg/database"
 )
@@ -57,9 +58,10 @@ func main() {
 		}
 	}()
 
-	// Migrate the Location model
-	if err := db.AutoMigrate(&models.Location{}); err != nil {
-		log.Fatalf("failed to migrate coordinates table: %v", err)
+	// Run database migrations
+	migrationRunner := migrations.NewMigrationRunner(db)
+	if err := migrationRunner.RunMigrations(); err != nil {
+		log.Fatal("Failed to run database migrations:", err)
 	}
 
 	// Set up API routes

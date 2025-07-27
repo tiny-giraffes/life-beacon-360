@@ -20,20 +20,23 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
-type Location struct {
-	ID        uint      `gorm:"primaryKey;autoIncrement" json:"id"`
-	UserID    uuid.UUID `gorm:"type:uuid" json:"user_id"`
-	Latitude  float64   `gorm:"type:float8;not null" json:"latitude"`
-	Longitude float64   `gorm:"type:float8;not null" json:"longitude"`
-	CreatedAt time.Time `gorm:"type:timestamptz;default:current_timestamp;not null" json:"createdAt"`
+type Group struct {
+	ID        uuid.UUID `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
+	Name      string    `gorm:"type:varchar(255);not null" json:"name"`
+	CreatedAt time.Time `gorm:"type:timestamptz;default:current_timestamp;not null" json:"created_at"`
+	UpdatedAt time.Time `gorm:"type:timestamptz;default:current_timestamp;not null" json:"updated_at"`
 	
 	// Relations
-	User User `gorm:"foreignKey:UserID" json:"user,omitempty"`
+	Users []User `gorm:"foreignKey:GroupID" json:"users,omitempty"`
 }
 
-type LocationRequest struct {
-	Latitude  float64 `json:"latitude" validate:"required"`
-	Longitude float64 `json:"longitude" validate:"required"`
+// BeforeCreate will set a UUID rather than numeric ID
+func (g *Group) BeforeCreate(tx *gorm.DB) error {
+	if g.ID == uuid.Nil {
+		g.ID = uuid.New()
+	}
+	return nil
 }
