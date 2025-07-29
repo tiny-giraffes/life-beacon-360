@@ -1,2 +1,0 @@
-curl -X 'POST'   'http://localhost:8080/api/locations'   -H 'accept: application/json'   -H 'Content-Type: application/json'   -H 'Authorization: <token>'   -d '{"latitude": 55.75228, "longitude": 38.61558}'
-{"message":"Location saved successfully"}
