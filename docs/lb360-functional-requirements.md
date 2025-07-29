@@ -312,7 +312,6 @@ Life Beacon 360 (LB360) is a location tracking application designed for families
   - Tracking compliance report
   - View tracking control logs
 
-*Full Location Tracking Rules specification continues as defined in the separate document*
 
 ## Database Models
 
