@@ -91,7 +91,7 @@ func GetLatestLocations(db *gorm.DB) echo.HandlerFunc {
 		locations, err := repository.GetLatestLocations(db, 10)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{
-				"error": "Failed to retrieve locations: " + err.Error(),
+				"error": "Failed to retrieve locations : " + err.Error(),
 			})
 		}
 
